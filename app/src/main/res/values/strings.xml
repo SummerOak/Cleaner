@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Cleaner</string>
+    <string name="accessibility_desc_clean_master">clean master</string>
+</resources>
