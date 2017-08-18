@@ -2,6 +2,8 @@ package com.chedifier.cleaner.base;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.os.Bundle;
+import android.util.Log;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -10,24 +12,60 @@ import java.util.List;
 
 public abstract class BaseActivity extends Activity {
 
+    private static final String TAG = "BaseActivity";
+
     public static final int CODE_DRAW_OVER_OTHER_APP_PERMISSION = 1001;
     public static final int CODE_ACCESSIBILITY_PERMISSION = 1002;
     public static final int CODE_APP_USAGE_PERMISSION = 1003;
 
-    private List<WeakReference<IActirityResultListener>> mActivityResultListeners = new ArrayList<>();
+    private boolean mFirstShow = true;
+
+    private List<WeakReference<IPActivityListener>> mActivityResultListeners = new ArrayList<>();
 
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        List<WeakReference<IActirityResultListener>> deads = new ArrayList<>();
-        for(WeakReference<IActirityResultListener> wrf:mActivityResultListeners){
+    protected void onCreate(Bundle savedInstanceState) {
+        Log.i(TAG,"onCreate " + this.getClass().getSimpleName());
+        super.onCreate(savedInstanceState);
+        mFirstShow = true;
+    }
+
+    @Override
+    protected void onRestart() {
+        Log.i(TAG,"onRestart " + this.getClass().getSimpleName());
+        super.onRestart();
+
+        List<WeakReference<IPActivityListener>> deads = new ArrayList<>();
+        for(WeakReference<IPActivityListener> wrf:mActivityResultListeners){
             if(wrf.get() == null){
                 deads.add(wrf);
             }
         }
-        deads.removeAll(deads);
-        for(WeakReference<IActirityResultListener> wrf:mActivityResultListeners){
-            IActirityResultListener l = wrf.get();
+
+        mActivityResultListeners.removeAll(deads);
+
+        List<WeakReference<IPActivityListener>> t = new ArrayList<>(mActivityResultListeners);
+        for(WeakReference<IPActivityListener> wrf:t){
+            IPActivityListener l = wrf.get();
+            if(l != null){
+                l.onRestart();
+            }
+        }
+    }
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        List<WeakReference<IPActivityListener>> deads = new ArrayList<>();
+        for(WeakReference<IPActivityListener> wrf:mActivityResultListeners){
+            if(wrf.get() == null){
+                deads.add(wrf);
+            }
+        }
+        mActivityResultListeners.removeAll(deads);
+        List<WeakReference<IPActivityListener>> t = new ArrayList<>(mActivityResultListeners);
+        for(WeakReference<IPActivityListener> wrf:t){
+            IPActivityListener l = wrf.get();
             if(l != null && l.onActivityResult(resultCode,resultCode,data)){
                 return;
             }
@@ -36,9 +74,9 @@ public abstract class BaseActivity extends Activity {
         super.onActivityResult(requestCode, resultCode, data);
     }
 
-    public void addResultListener(IActirityResultListener l){
-        List<WeakReference<IActirityResultListener>> deads = new ArrayList<>();
-        for(WeakReference<IActirityResultListener> wrf:mActivityResultListeners){
+    public void addResultListener(IPActivityListener l){
+        List<WeakReference<IPActivityListener>> deads = new ArrayList<>();
+        for(WeakReference<IPActivityListener> wrf:mActivityResultListeners){
             if(wrf.get() == null){
                 deads.add(wrf);
                 continue;
@@ -49,10 +87,11 @@ public abstract class BaseActivity extends Activity {
         }
 
         deads.removeAll(deads);
-        mActivityResultListeners.add(new WeakReference<IActirityResultListener>(l));
+        mActivityResultListeners.add(new WeakReference<>(l));
     }
 
-    public interface IActirityResultListener{
+    public interface IPActivityListener {
+        void onRestart();
         boolean onActivityResult(int requestCode, int resultCode, Intent data);
     }
 }

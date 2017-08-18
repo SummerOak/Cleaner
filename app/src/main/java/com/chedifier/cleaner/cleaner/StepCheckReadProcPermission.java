@@ -11,14 +11,13 @@ import android.util.Log;
 import com.chedifier.cleaner.base.BaseActivity;
 import com.chedifier.cleaner.steps.Step;
 
-import static android.app.Activity.RESULT_OK;
 import static com.chedifier.cleaner.base.BaseActivity.CODE_APP_USAGE_PERMISSION;
 
 /**
  * Created by Administrator on 2017/8/18.
  */
 
-public class StepCheckReadProcPermission extends Step {
+public class StepCheckReadProcPermission extends Step implements BaseActivity.IPActivityListener{
 
     private static final String TAG = "StepCheckReadProcPermission";
 
@@ -35,21 +34,21 @@ public class StepCheckReadProcPermission extends Step {
         }else{
             Log.i(TAG,"we are not grant to access running stats.");
 
-            mActivity.addResultListener(new BaseActivity.IActirityResultListener() {
-                @Override
-                public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
-                    if(CODE_APP_USAGE_PERMISSION == requestCode){
-                        if(resultCode == RESULT_OK){
-                            doNext();
-                        }
-                        return true;
-                    }
-                    return false;
-                }
-            });
+            mActivity.addResultListener(this);
             Intent i =new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
             mActivity.startActivityForResult(i, CODE_APP_USAGE_PERMISSION);
         }
+    }
+
+    private void afterSetting(){
+        if(hasPermissionForBlocking()){
+            Log.i(TAG,"we are granted to ReadProc, check next.");
+            doNext();
+            return;
+        }
+
+        Log.i(TAG,"permission not grant yet,we can't step forward,finish it.");
+        mActivity.finish();
     }
 
     public boolean hasPermissionForBlocking(){
@@ -65,5 +64,19 @@ public class StepCheckReadProcPermission extends Step {
         } catch (PackageManager.NameNotFoundException e) {
             return false;
         }
+    }
+
+    @Override
+    public void onRestart() {
+        afterSetting();
+    }
+
+    @Override
+    public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(CODE_APP_USAGE_PERMISSION == requestCode){
+            afterSetting();
+            return true;
+        }
+        return false;
     }
 }
