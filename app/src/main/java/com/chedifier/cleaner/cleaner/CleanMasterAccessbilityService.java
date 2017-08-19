@@ -8,14 +8,13 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.os.Process;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
-import com.chedifier.cleaner.base.PackageUtils;
 import com.chedifier.cleaner.base.StringUtils;
+import com.chedifier.cleaner.base.SystemUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,17 +26,6 @@ import java.util.List;
 public class CleanMasterAccessbilityService extends AccessibilityService {
 
     private static final String TAG = "CleanMasterAccessbilityService";
-
-    private static final String SETTING_PKG = "com.android.settings";
-    private static final List<String> WHITE_LIST = new ArrayList<>();
-    static {
-        WHITE_LIST.add("android");
-        WHITE_LIST.add("com.google.android.gsf");
-        WHITE_LIST.add("com.google.android.gsf.login");
-        WHITE_LIST.add("com.android.systemui");
-        WHITE_LIST.add("com.google.android.packageinstaller");
-        WHITE_LIST.add(SETTING_PKG);
-    }
 
     private CleanUI mView;
 
@@ -54,11 +42,11 @@ public class CleanMasterAccessbilityService extends AccessibilityService {
     private TASK_STATE mState = TASK_STATE.INIT;
     public enum TASK_STATE{
         INIT,
-        TARGET_FIND,
-        FORCE_STOP_CLICKED,
+        FOUND,
+        FORCE_STOPED,
         ENSUREED,
         SUCCESS,
-        STOP_FAILED,
+        FAILED,
     }
 
     private Action mAction = new Action(Looper.getMainLooper());
@@ -139,11 +127,12 @@ public class CleanMasterAccessbilityService extends AccessibilityService {
         if (nodeInfo != null) {
             int eventType = event.getEventType();
             if (eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED || eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-                if(mCurrentRetryTime < MAX_RETRY_TIME && !tryClickStop(nodeInfo)){
+                if(mCurrentRetryTime <= MAX_RETRY_TIME && !tryClickStop(nodeInfo)){
                     if(tryEnsure(nodeInfo)){
+                        Log.i(TAG,"retried " + mCurrentRetryTime);
                         if(++mCurrentRetryTime > MAX_RETRY_TIME){
                             mSticky.add(mCurrentTask);
-                            setState(TASK_STATE.STOP_FAILED);
+                            setState(TASK_STATE.FAILED);
 
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
                                 this.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK);
@@ -184,16 +173,14 @@ public class CleanMasterAccessbilityService extends AccessibilityService {
 
     private void initTasks(){
         reset();
-        List<String> excepts = new ArrayList<>();
-        excepts.addAll(WHITE_LIST);
-        excepts.add(getPackageName());
-        mTasks.addAll(PackageUtils.getAllRunningPackages(this,excepts));
+        mTasks.addAll(TargetTaskFetcher.getPackagesCanbeStop(this));
 
         Log.i(TAG,"installed: " + mTasks.size());
     }
 
 
     private boolean takeNextTask(){
+        Log.i(TAG,"takeNextTask");
         mCurrentRetryTime = 0;
 
         if(mTasks.size() > 0){
@@ -211,15 +198,17 @@ public class CleanMasterAccessbilityService extends AccessibilityService {
 
                     mState = TASK_STATE.INIT;
                     Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_NO_ANIMATION|Intent.FLAG_ACTIVITY_NO_HISTORY);
                     i.setData(Uri.fromParts("package", packageName, null));
-
 
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN) {
                         ActivityOptions options = ActivityOptions.makeCustomAnimation(CleanMasterAccessbilityService.this,0,0);
                         CleanMasterAccessbilityService.this.startActivity(i,options.toBundle());
+                    }else{
+                        CleanMasterAccessbilityService.this.startActivity(i);
                     }
                 }catch (Throwable t){
+                    t.printStackTrace();
                     mAction.removeMessages(Action.S_NEXT);
                     mAction.sendEmptyMessage(Action.S_NEXT);
                 }
@@ -241,9 +230,7 @@ public class CleanMasterAccessbilityService extends AccessibilityService {
 
     private void hideOverlayAndExit(){
         mView.show(false);
-
-        System.exit(0);
-        Process.killProcess(Process.myPid());
+        SystemUtils.killProcess();
     }
 
     private void onStop(){
@@ -259,7 +246,7 @@ public class CleanMasterAccessbilityService extends AccessibilityService {
         notifyTaskStateIfNeeded();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            this.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME);
+            SystemUtils.backToHome(this.getApplicationContext());
         }
 
         mView.onStop(mSticky);
@@ -282,17 +269,20 @@ public class CleanMasterAccessbilityService extends AccessibilityService {
             int childCount = nodeInfo.getChildCount();
             if(nodeInfo.getText() != null){
                 String nodeCotent = nodeInfo.getText().toString();
-                if (StringUtils.contains(nodeCotent,"停止") && nodeInfo.isClickable()) {
+                if ((StringUtils.contains(nodeCotent,"停止")
+                        || StringUtils.containsIgnoreCase(nodeCotent,"stop"))
+
+                        && nodeInfo.isClickable()) {
                     if(nodeInfo.isEnabled()){
                         Log.i(TAG, "try stop success");
                         nodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                        setState(TASK_STATE.FORCE_STOP_CLICKED);
+                        setState(TASK_STATE.FORCE_STOPED);
                         return true;
                     }else{
-                        if(mState.ordinal() >= TASK_STATE.TARGET_FIND.ordinal()){
+                        if(mState.ordinal() >= TASK_STATE.FOUND.ordinal()){
                             setState(TASK_STATE.SUCCESS);
                         }else{
-                            setState(TASK_STATE.TARGET_FIND);
+                            setState(TASK_STATE.FOUND);
                         }
                     }
                 }
@@ -313,7 +303,10 @@ public class CleanMasterAccessbilityService extends AccessibilityService {
             int childCount = nodeInfo.getChildCount();
             if(nodeInfo.getText() != null){
                 String nodeCotent = nodeInfo.getText().toString();
-                if (StringUtils.contains(nodeCotent,"确定") && nodeInfo.isClickable() && nodeInfo.isEnabled()) {
+                if ((StringUtils.contains(nodeCotent,"确定")
+                        || StringUtils.containsIgnoreCase(nodeCotent,"ok"))
+
+                        && nodeInfo.isClickable() && nodeInfo.isEnabled()) {
                     Log.i(TAG, "try ensure success");
                     nodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK);
                     setState(TASK_STATE.ENSUREED);
