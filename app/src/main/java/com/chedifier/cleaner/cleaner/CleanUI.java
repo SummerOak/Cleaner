@@ -197,7 +197,7 @@ public class CleanUI {
         mNewAvaiableMen = SystemUtils.getMemoryInfo(mAppContext).availMem;
         String opt  = "opt " + Formatter.formatFileSize(mAppContext,mOldAvaiableMem)
                 + " > " + Formatter.formatFileSize(mAppContext,mNewAvaiableMen)
-                + " freed: " + Formatter.formatFileSize(mAppContext,(mNewAvaiableMen-mOldAvaiableMem));
+                + " freed: " + (mNewAvaiableMen < mOldAvaiableMem?"-":"") + Formatter.formatFileSize(mAppContext,(Math.abs(mNewAvaiableMen-mOldAvaiableMem)));
 
         mContent.append("\n\n").append(opt).append("\n");
         mContent.append("total memory: " + Formatter.formatFileSize(mAppContext,SystemUtils.getMemoryInfo(mAppContext).totalMem)).append("\n");
