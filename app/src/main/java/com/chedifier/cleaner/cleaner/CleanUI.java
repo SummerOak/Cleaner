@@ -130,7 +130,7 @@ public class CleanUI {
                 if(times == 2){
                     Cleaner.stop(mAppContext);
                 }else if(times >= 3){
-                    SystemUtils.killProcess();
+                    Cleaner.exit(mAppContext);
                 }else{
                     //onTaskStart("jjjjjjjjjjjjjjjjjjjjjjjjjjjjjj");
                 }
