@@ -1,8 +1,11 @@
 package com.chedifier.cleaner;
 
+import android.Manifest;
 import android.content.Intent;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -14,6 +17,7 @@ import com.chedifier.cleaner.base.BaseActivity;
 import com.chedifier.cleaner.base.SystemUtils;
 import com.chedifier.cleaner.cleaner.CleanUI;
 import com.chedifier.cleaner.cleaner.Cleaner;
+import com.chedifier.cleaner.cleaner.StepCheckOverlayPermission;
 import com.chedifier.cleaner.cleaner.TargetTaskFetcher;
 
 public class CleanerActivity extends BaseActivity {
@@ -26,6 +30,10 @@ public class CleanerActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         Log.i(TAG,"onCreate");
         super.onCreate(savedInstanceState);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Log.i("ckdk","Settings.canDrawOverlays(this) "+ Settings.canDrawOverlays(this));
+        }
 
         TextView view = new TextView(this);
         view.setBackgroundColor(Color.TRANSPARENT);
@@ -41,9 +49,9 @@ public class CleanerActivity extends BaseActivity {
             }
         });
 
-//        new CleanUI(this).show(true);
+        new CleanUI(this).show(true);
 
-        Cleaner.start(this);
+//        Cleaner.start(this);
     }
 
 }

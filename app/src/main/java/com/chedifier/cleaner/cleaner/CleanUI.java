@@ -1,6 +1,7 @@
 package com.chedifier.cleaner.cleaner;
 
 import android.content.Context;
+import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.StateListDrawable;
@@ -61,12 +62,19 @@ public class CleanUI {
 
     private void initView(){
         mWLParams = new WindowManager.LayoutParams();
-        mWLParams.type = WindowManager.LayoutParams.TYPE_SYSTEM_ALERT;
+        if(Build.VERSION.SDK_INT > 24){
+            mWLParams.type = 2038;
+        }else{
+            mWLParams.type = WindowManager.LayoutParams.TYPE_TOAST;
+        }
         mWLParams.format = PixelFormat.RGBA_8888;
         mWLParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                 |WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-                |WindowManager.LayoutParams.FLAG_FULLSCREEN;
-        mWLParams.gravity = Gravity.CENTER;
+                |WindowManager.LayoutParams.FLAG_FULLSCREEN
+                |WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS;
+        mWLParams.gravity = Gravity.TOP|Gravity.CENTER_HORIZONTAL;
+        mWLParams.height = ScreenUtils.getScreenSize(mAppContext)[1];
+        mWLParams.screenOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
 
         mLayout = new LinearLayout(mAppContext);
         mLayout.setBackgroundResource(R.color.color_main);
