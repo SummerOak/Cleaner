@@ -41,6 +41,8 @@ public class TargetTaskFetcher {
         WHITE_LIST_KEYS.add("clock");
         WHITE_LIST_KEYS.add("provider");
         WHITE_LIST_KEYS.add("system");
+        WHITE_LIST_KEYS.add("launcher");
+        WHITE_LIST_KEYS.add("package");
     }
 
     public static List<String> getPackagesCanbeStop(Context context){
