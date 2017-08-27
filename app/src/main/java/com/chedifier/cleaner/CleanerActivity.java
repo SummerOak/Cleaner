@@ -31,10 +31,6 @@ public class CleanerActivity extends BaseActivity {
         Log.i(TAG,"onCreate");
         super.onCreate(savedInstanceState);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Log.i("ckdk","Settings.canDrawOverlays(this) "+ Settings.canDrawOverlays(this));
-        }
-
         TextView view = new TextView(this);
         view.setBackgroundColor(Color.TRANSPARENT);
         view.setTextSize(TypedValue.COMPLEX_UNIT_SP,33);
@@ -49,9 +45,9 @@ public class CleanerActivity extends BaseActivity {
             }
         });
 
-        new CleanUI(this).show(true);
+//        new CleanUI(this).show(true);
 
-//        Cleaner.start(this);
+        Cleaner.start(this);
     }
 
 }
