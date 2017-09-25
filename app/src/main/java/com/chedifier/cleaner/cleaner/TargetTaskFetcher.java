@@ -34,8 +34,19 @@ public class TargetTaskFetcher {
         WHITE_LIST.add("com.android.settings");
     }
 
+    private static final List<String> WHITE_LIST_KEYS = new ArrayList<>();
+    static {
+        WHITE_LIST_KEYS.add("input");
+        WHITE_LIST_KEYS.add("time");
+        WHITE_LIST_KEYS.add("clock");
+        WHITE_LIST_KEYS.add("provider");
+        WHITE_LIST_KEYS.add("system");
+        WHITE_LIST_KEYS.add("launcher");
+        WHITE_LIST_KEYS.add("package");
+    }
+
     public static List<String> getPackagesCanbeStop(Context context){
-        return getFromInstalledPackages(context,WHITE_LIST);
+        return getFromInstalledPackages(context,WHITE_LIST,WHITE_LIST_KEYS);
 //        return getRecentRunningPackages(context,WHITE_LIST);
     }
 
@@ -88,7 +99,7 @@ public class TargetTaskFetcher {
 
 
 
-    private static List<String> getFromInstalledPackages(Context context, List<String> excepts){
+    private static List<String> getFromInstalledPackages(Context context, List<String> exceptPkgs,List<String> exceptKeys){
         List<String> packages = new ArrayList<>();
         List<PackageInfo> apps = context.getPackageManager().getInstalledPackages(0);
         for(int i=0;i<apps.size();i++) {
@@ -110,7 +121,20 @@ public class TargetTaskFetcher {
                 continue;
             }
 
-            if(excepts != null && excepts.contains(p.packageName)){
+            if(exceptKeys != null){
+                boolean containsWhiteKeys = false;
+                for(String k:exceptKeys){
+                    if(p.packageName.contains(k)){
+                        containsWhiteKeys = true;
+                        break;
+                    }
+                }
+                if(containsWhiteKeys){
+                    continue;
+                }
+            }
+
+            if(exceptPkgs != null && exceptPkgs.contains(p.packageName)){
                 continue;
             }
 
