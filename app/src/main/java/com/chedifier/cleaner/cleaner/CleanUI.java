@@ -95,7 +95,7 @@ public class CleanUI {
         mScroller.setPadding(0,0,0,ScreenUtils.dip2px(mAppContext,20));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                screenSize[1]*5/7);
+                screenSize[1]*2/3);
         lp.topMargin = ScreenUtils.dip2px(mAppContext,40);
         lp.gravity = Gravity.CENTER;
         mLayout.addView(mScroller,lp);

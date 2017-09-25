@@ -49,9 +49,9 @@ public class CleanerActivity extends BaseActivity {
             }
         });
 
-        new CleanUI(this).show(true);
+//        new CleanUI(this).show(true);
 
-//        Cleaner.start(this);
+        Cleaner.start(this);
     }
 
 }
