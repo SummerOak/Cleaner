@@ -217,6 +217,7 @@ public class CleanMasterAccessbilityService extends AccessibilityService {
             }
         }else{
             onStop();
+            mAction.sendEmptyMessageDelayed(Action.S_HIDE_PANEL,2000);
         }
 
         return false;
