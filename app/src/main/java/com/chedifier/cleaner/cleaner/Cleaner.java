@@ -18,7 +18,8 @@ public class Cleaner {
 
     public static void start(final BaseActivity context){
         sHead = new StepCheckAccessPermission(context)
-                .setNext(new StepClean(context));
+                .setNext(new StepCheckOverlayPermission(context)
+                .setNext(new StepClean(context)));
 
         sHead.doAction();
     }
